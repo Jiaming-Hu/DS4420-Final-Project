@@ -1,6 +1,4 @@
-# DS4420-Final-Project
-
-## Stock Market Sentiment & Time Series Analysis
+# DS4420-Final-Project: Stock Market Sentiment & Time Series Analysis
 
 ### General project idea
 Project Proposal
