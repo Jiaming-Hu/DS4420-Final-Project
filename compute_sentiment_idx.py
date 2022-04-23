@@ -3,7 +3,7 @@ import numpy as np
 
 
 df = pd.read_csv('generated_data/stock_comments_analyzed.csv', parse_dates=['created_time'])
-grouped = df['polarity'].groupby(df.created_time.dt.date)
+grouped = df['preds'].groupby(df.created_time.dt.date)
 
 
 def BI_Simple_func(row):

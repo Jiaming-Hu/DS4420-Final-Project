@@ -26,6 +26,7 @@ pos_corpus = 'positive.txt'
 neg_corpus = 'negative.txt'
 K_Best_Features = 3000
 
+
 def load_dataset():
     pos_file = os.path.join(data_path, pos_corpus)
     neg_file = os.path.join(data_path, neg_corpus)
@@ -131,6 +132,9 @@ def benchmark_clfs():
 
     X, y = load_dataset_tokenized()
 
+    cols = ['metrics', 'accuracy',  'pos_precision', 'pos_recall', 'pos_f1_score', 'neg_precision', 'neg_recall', 'neg_f1_score']
+    scores = []
+
     classifiers = [
         ('LinearSVC', svm.LinearSVC()),
         ('LogisticReg', LogisticRegression()),
@@ -139,11 +143,8 @@ def benchmark_clfs():
         ('KNN', KNeighborsClassifier()),
         ('DecisionTree', DecisionTreeClassifier()),
         ('RandomForest', RandomForestClassifier()),
-        ('AdaBoost', AdaBoostClassifier(base_estimator=LogisticRegression()))
-    ]
+        ('AdaBoost', AdaBoostClassifier(base_estimator=LogisticRegression()))]
 
-    cols = ['metrics', 'accuracy',  'pos_precision', 'pos_recall', 'pos_f1_score', 'neg_precision', 'neg_recall', 'neg_f1_score']
-    scores = []
     for name, clf in classifiers:
         score = KFold_validation(clf, X, y)
         row = [name]
@@ -193,11 +194,52 @@ def eval_model():
 
     df.to_csv('stock_comments_analyzed.csv', index=False)
 
+def eval_model_bagging():
 
+    X, y = load_dataset_tokenized()
+    vectorizer = TfidfVectorizer(analyzer='word',
+                                 tokenizer=dummy_fun,
+                                 preprocessor=dummy_fun,
+                                 token_pattern=None)
+
+    X = vectorizer.fit_transform(X)
+
+    print('Loading comments...')
+    df = pd.read_csv(comment_file)
+    df.dropna(inplace=True)
+    df.reset_index(drop=True, inplace=True)
+    df['created_time'] = pd.to_datetime(df['created_time'], format='%Y-%m-%d %H:%M:%S')
+    df['title'].apply(lambda x: [w.strip() for w in x.split()])
+
+    texts = df['title']
+    texts = vectorizer.transform(texts)
+
+    df['preds'] = 0
+
+    classifiers = [
+    ('LinearSVC', svm.LinearSVC()),
+    ('LogisticReg', LogisticRegression()),
+    ('SGD', SGDClassifier()),
+    ('MultinomialNB', naive_bayes.MultinomialNB()),
+    ('KNN', KNeighborsClassifier()),
+    ('DecisionTree', DecisionTreeClassifier()),
+    ('RandomForest', RandomForestClassifier())]
+    
+    for name, clf in classifiers:
+        clf.fit(X, y)
+        pred = clf.predict(texts)
+        df[name] = pred
+        df['preds'] = df['preds'] + df[name]
+
+    df['preds'] = df['preds'].apply(lambda x: 0 if x < 4 else 1)
+    df.to_csv('stock_comments_analyzed.csv', index=False)
+    
+    
+        
 if __name__ == '__main__':
     scores = benchmark_clfs()
     print(scores)
     scores.to_csv('model_ml_scores.csv', float_format='%.4f')
 
 
-    eval_model()
+    eval_model_bagging()
